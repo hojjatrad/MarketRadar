@@ -1,0 +1,22 @@
+# Android / Gradle build artifacts
+.gradle/
+build/
+**/build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx
+*.jks
+keystore/
+
+# Kept-out deliverables (APK, reports) — attach via GitHub Releases instead
+release/
+*.apk
+*.aab
+
+# Compiled reports/images
+*.png
+*.pdf
