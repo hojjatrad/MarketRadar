@@ -1,5 +1,6 @@
 package com.arena.marketradar.ui.screens.forecast
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -84,7 +85,7 @@ class ForecastViewModel(private val app: MarketRadarApplication) : ViewModel() {
 }
 
 @Composable
-fun ForecastScreen(viewModel: ForecastViewModel = viewModel(factory = VMFactory { ForecastViewModel(localApp()) })) {
+fun ForecastScreen(onOpen: (String) -> Unit = {}, viewModel: ForecastViewModel = viewModel(factory = VMFactory { ForecastViewModel(localApp()) })) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lang = collectLang()
 
@@ -106,14 +107,14 @@ fun ForecastScreen(viewModel: ForecastViewModel = viewModel(factory = VMFactory 
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        items(state.items, key = { it.symbol }) { f -> ForecastRow(f, lang) }
+        items(state.items, key = { it.symbol }) { f -> ForecastRow(f, lang, onOpen = { onOpen(f.symbol) }) }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
 @Composable
-private fun ForecastRow(f: ForecastItem, lang: String) {
-    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp), shape = RoundedCornerShape(16.dp)) {
+private fun ForecastRow(f: ForecastItem, lang: String, onOpen: () -> Unit) {
+    Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp).clickable { onOpen() }, shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(if (lang == "fa") f.nameFa else f.nameEn, fontWeight = FontWeight.Bold,
@@ -122,15 +123,28 @@ private fun ForecastRow(f: ForecastItem, lang: String) {
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatChip(L.probability.l(lang), "${f.probability}%")
-                StatChip(L.horizon.l(lang), f.horizon)
+                if (f.prob24h != null) StatChip("24h", "${f.prob24h}%")
+                if (f.prob72h != null) StatChip("72h", "${f.prob72h}%")
+                if (f.prob1w != null) StatChip("1w", "${f.prob1w}%")
                 StatChip(L.expectedMove.l(lang), Formatters.percent(f.expectedMovePercent))
             }
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 ConfidenceBadge(f.confidence, lang)
-                Spacer(Modifier.width(8.dp))
-                Text("${L.dataPoints.l(lang)}: ${f.dataPoints}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (f.accuracy != null) Text("${L.dataPoints.l(lang)}: ${f.dataPoints} • دقت ${(f.accuracy * 100).toInt()}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else Text("${L.dataPoints.l(lang)}: ${f.dataPoints}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // Fear & Greed bar
+            if (f.fearGreed != null) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (lang == "fa") "شاخص ترس/طمع" else "Fear & Greed", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(8.dp))
+                    LinearProgressIndicator(progress = { f.fearGreed / 100f }, modifier = Modifier.weight(1f).height(6.dp),
+                        color = com.arena.marketradar.domain.analysis.MarketAnalysis.fearGreedColor(f.fearGreed))
+                    Spacer(Modifier.width(8.dp))
+                    Text("${f.fearGreed}", fontSize = 11.sp)
+                }
             }
             Spacer(Modifier.height(8.dp))
             // Probability meter
@@ -144,8 +158,11 @@ private fun ForecastRow(f: ForecastItem, lang: String) {
                 }
             )
             Spacer(Modifier.height(8.dp))
-            Text(if (lang == "fa") f.summaryFa else f.summaryEn, fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (lang == "fa") f.summaryFa else f.summaryEn, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (f.resistance != null || f.support != null) {
+                Spacer(Modifier.height(4.dp))
+                Text("${if (lang == "fa") "حمایت" else "Support"}: ${Formatters.plain(f.support ?: 0.0)} • ${if (lang == "fa") "مقاومت" else "Resistance"}: ${Formatters.plain(f.resistance ?: 0.0)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (f.factors.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
                 Text("• " + f.factors.joinToString("\n• "), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

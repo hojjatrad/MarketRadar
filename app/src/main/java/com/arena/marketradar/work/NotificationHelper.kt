@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -22,10 +23,14 @@ class NotificationHelper(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(
-                NotificationChannel(CH_PRICE, "هشدار قیمت", NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(CH_PRICE, "هشدار قیمت", NotificationManager.IMPORTANCE_HIGH).apply {
+                    enableVibration(true); setSound(Settings.System.DEFAULT_NOTIFICATION_URI, null)
+                }
             )
             manager.createNotificationChannel(
-                NotificationChannel(CH_TREND, "هشدار روند/پیش‌بینی", NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(CH_TREND, "هشدار روند/پیش‌بینی", NotificationManager.IMPORTANCE_HIGH).apply {
+                    enableVibration(true); setSound(Settings.System.DEFAULT_NOTIFICATION_URI, null)
+                }
             )
             manager.createNotificationChannel(
                 NotificationChannel(CH_NEWS, "خبر مهم", NotificationManager.IMPORTANCE_DEFAULT)

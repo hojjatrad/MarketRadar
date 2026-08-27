@@ -6,6 +6,7 @@ import com.arena.marketradar.data.repo.AlertRepository
 import com.arena.marketradar.data.repo.HistoryRepository
 import com.arena.marketradar.data.repo.MarketRepository
 import com.arena.marketradar.data.repo.NewsRepository
+import com.arena.marketradar.data.repo.PaperTradingRepository
 import com.arena.marketradar.data.repo.PortfolioRepository
 import com.arena.marketradar.domain.analysis.ForecastEngine
 import com.arena.marketradar.domain.analysis.SentimentAnalyzer
@@ -28,6 +29,8 @@ class MarketRadarApplication : Application() {
         private set
     lateinit var portfolio: PortfolioRepository
         private set
+    lateinit var paper: PaperTradingRepository
+        private set
     lateinit var engine: ForecastEngine
         private set
     lateinit var notifications: NotificationHelper
@@ -44,6 +47,7 @@ class MarketRadarApplication : Application() {
         news = NewsRepository(sentiment)
         alerts = AlertRepository(this)
         portfolio = PortfolioRepository(this)
+        paper = PaperTradingRepository(this)
         engine = ForecastEngine()
         notifications = NotificationHelper(this)
         AlertScheduler.schedule(this)

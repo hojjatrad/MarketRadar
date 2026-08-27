@@ -61,9 +61,10 @@ import com.arena.marketradar.ui.app.VMFactory
 import com.arena.marketradar.ui.app.app
 import com.arena.marketradar.ui.app.localApp
 import com.arena.marketradar.ui.app.collectLang
+import com.arena.marketradar.ui.components.AdvancedPriceChart
 import com.arena.marketradar.ui.components.ChangePill
+import com.arena.marketradar.ui.components.ChartOverlay
 import com.arena.marketradar.ui.components.ConfidenceBadge
-import com.arena.marketradar.ui.components.PriceChart
 import com.arena.marketradar.ui.components.SignalBadge
 import com.arena.marketradar.ui.components.StatChip
 import com.arena.marketradar.domain.util.Formatters
@@ -104,8 +105,20 @@ class DetailViewModel(private val app: MarketRadarApplication, private val symbo
                 val key = assetKey(symbol)
                 val news = app.news.fetch().filter { key in it.assets }.take(20)
                 val sentiment = if (news.isNotEmpty()) news.map { it.sentiment }.average() else 0.0
+                // Correlations with a few tracked assets (requires their local history).
+                val corrList = mutableListOf<com.arena.marketradar.data.model.Correlation>()
+                val corrSymbols = listOf("BTC", "ETH", "XAU", "USD", "USDT")
+                for (s in corrSymbols) {
+                    if (s == symbol) continue
+                    val otherHist = app.market.getHistory(s).map { it.value }
+                    val n = minOf(history.size, otherHist.size)
+                    if (n >= 30) {
+                        val v = com.arena.marketradar.domain.analysis.MarketAnalysis.pearsonOf(history.takeLast(n), otherHist.takeLast(n))
+                        if (v != null) corrList.add(com.arena.marketradar.data.model.Correlation(s, s, v))
+                    }
+                }
                 val forecast = if (price != null && history.size >= 3) {
-                    app.engine.forecast(symbol, price.nameFa, price.nameEn, history, sentiment)
+                    app.engine.forecast(symbol, price.nameFa, price.nameEn, history, sentiment, corrList)
                 } else null
                 _state.update { it.copy(loading = false, price = price, history = history, forecast = forecast, news = news) }
             } catch (e: Exception) {
@@ -198,29 +211,68 @@ fun DetailScreen(symbol: String, onBack: () -> Unit, viewModel: DetailViewModel 
                             Spacer(Modifier.height(10.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 StatChip(if (lang == "fa") "احتمال" else "Probability", "${f.probability}%")
-                                StatChip(if (lang == "fa") "افق" else "Horizon", f.horizon)
-                                StatChip(if (lang == "fa") "حرکت مورد انتظار" else "Expected", Formatters.percent(f.expectedMovePercent))
+                                StatChip(if (lang == "fa") "حرکت" else "Expected", Formatters.percent(f.expectedMovePercent))
+                                if (f.accuracy != null) StatChip(if (lang == "fa") "دقت" else "Accuracy", "${(f.accuracy * 100).toInt()}%")
                             }
-                            Spacer(Modifier.height(10.dp))
-                            ConfidenceBadge(f.confidence, lang)
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (f.prob24h != null) StatChip("24h", "${f.prob24h}%")
+                                if (f.prob72h != null) StatChip("72h", "${f.prob72h}%")
+                                if (f.prob1w != null) StatChip("1w", "${f.prob1w}%")
+                                if (f.fearGreed != null) StatChip(if (lang == "fa") "ترس/طمع" else "FG", "${f.fearGreed}")
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ConfidenceBadge(f.confidence, lang)
+                                if (f.support != null || f.resistance != null) {
+                                    Text("${if (lang == "fa") "حمایت" else "Sup"}: ${Formatters.plain(f.support ?: 0.0, 2)} • ${if (lang == "fa") "مقاومت" else "Res"}: ${Formatters.plain(f.resistance ?: 0.0, 2)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
                             Spacer(Modifier.height(8.dp))
                             Text(if (lang == "fa") f.summaryFa else f.summaryEn, fontSize = 13.sp)
                             if (f.factors.isNotEmpty()) {
                                 Spacer(Modifier.height(6.dp))
-                                Text("• " + f.factors.joinToString("\n• "), fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("• " + f.factors.joinToString("\n• "), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (f.evidence.isNotEmpty()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(if (lang == "fa") "شواهد (وزن‌دار)" else "Weighted evidence", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                f.evidence.forEach { e ->
+                                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(if (e.positive) "▲" else "▼", fontSize = 11.sp, color = if (e.positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(e.label, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                                        Text("×${(e.weight).toString().take(3)}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            if (f.correlations.isNotEmpty()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(if (lang == "fa") "همبستگی" else "Correlations", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                f.correlations.forEach { c ->
+                                    Text("${c.nameEn}: ${Formatters.plain(c.value, 2)}", fontSize = 11.sp, color = if (c.value > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Chart
+            // Chart with indicator toggles
             item {
+                var ov by androidx.compose.runtime.remember { mutableStateOf(ChartOverlay(true, true, true, true, true)) }
                 Column(Modifier.padding(16.dp)) {
-                    Text(if (lang == "fa") "روند ۳۰ روز اخیر" else "Last 30 days", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(if (lang == "fa") "چارت تکنیکال" else "Technical chart", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ToggleChip("SMA", ov.sma) { ov = ov.copy(sma = it) }
+                        ToggleChip("EMA", ov.ema) { ov = ov.copy(ema = it) }
+                        ToggleChip("Boll", ov.bollinger) { ov = ov.copy(bollinger = it) }
+                        ToggleChip("Fib", ov.fibonacci) { ov = ov.copy(fibonacci = it) }
+                        ToggleChip("S/R", ov.supportResistance) { ov = ov.copy(supportResistance = it) }
+                    }
                     Spacer(Modifier.height(8.dp))
-                    PriceChart(state.history)
+                    AdvancedPriceChart(state.history, ov)
                     if (state.history.size < 20) {
                         Text(L.lowConfidenceNote.l(lang), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 6.dp))
@@ -272,6 +324,11 @@ private fun SectionHeaderTitle(title: String) {
 }
 
 @Composable
+private fun ToggleChip(label: String, selected: Boolean, onChange: (Boolean) -> Unit) {
+    FilterChip(selected = selected, onClick = { onChange(!selected) }, label = { Text(label, fontSize = 10.sp) })
+}
+
+@Composable
 private fun AddAlertChip(onAdd: (AlertCondition, Double) -> Unit, lang: String) {
     var show by androidx.compose.runtime.remember { mutableStateOf(false) }
     TextButton(onClick = { show = true }, modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -287,9 +344,14 @@ private fun AddAlertChip(onAdd: (AlertCondition, Double) -> Unit, lang: String) 
             title = { Text(L.addAlert.l(lang)) },
             text = {
                 Column {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = condition == AlertCondition.ABOVE, onClick = { condition = AlertCondition.ABOVE }, label = { Text(L.alertAbove.l(lang)) })
-                        FilterChip(selected = condition == AlertCondition.BELOW, onClick = { condition = AlertCondition.BELOW }, label = { Text(L.alertBelow.l(lang)) })
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(selected = condition == AlertCondition.ABOVE, onClick = { condition = AlertCondition.ABOVE }, label = { Text(L.alertAbove.l(lang), fontSize = 10.sp) })
+                        FilterChip(selected = condition == AlertCondition.BELOW, onClick = { condition = AlertCondition.BELOW }, label = { Text(L.alertBelow.l(lang), fontSize = 10.sp) })
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(selected = condition == AlertCondition.CROSS_ABOVE, onClick = { condition = AlertCondition.CROSS_ABOVE }, label = { Text(if (lang == "fa") "عبور صعودی" else "Cross up", fontSize = 10.sp) })
+                        FilterChip(selected = condition == AlertCondition.CROSS_BELOW, onClick = { condition = AlertCondition.CROSS_BELOW }, label = { Text(if (lang == "fa") "عبور نزولی" else "Cross down", fontSize = 10.sp) })
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(value = target, onValueChange = { target = it }, label = { Text(L.targetPrice.l(lang)) },
@@ -312,8 +374,13 @@ private fun AlertRow(alert: AlertItem, lang: String, onDelete: () -> Unit, onTog
     Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("${alert.nameFa} • ${if (alert.condition == AlertCondition.ABOVE) L.alertAbove.l(lang) else L.alertBelow.l(lang)} ${Formatters.plain(alert.targetPrice)}",
-                    fontWeight = FontWeight.Medium)
+                val condLabel = when (alert.condition) {
+                    AlertCondition.ABOVE -> L.alertAbove.l(lang)
+                    AlertCondition.BELOW -> L.alertBelow.l(lang)
+                    AlertCondition.CROSS_ABOVE -> if (lang == "fa") "عبور صعودی" else "Cross up"
+                    AlertCondition.CROSS_BELOW -> if (lang == "fa") "عبور نزولی" else "Cross down"
+                }
+                Text("${alert.nameFa} • $condLabel ${Formatters.plain(alert.targetPrice)}", fontWeight = FontWeight.Medium)
                 Text(if (alert.enabled) L.enabled.l(lang) else L.disabled.l(lang), fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

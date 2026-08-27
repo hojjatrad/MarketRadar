@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -202,3 +203,163 @@ fun StatChip(label: String, value: String, modifier: Modifier = Modifier) {
         Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Start)
     }
 }
+
+/**
+ * Advanced candlestick chart with optional indicator overlays, support/resistance
+ * and Fibonacci levels. Synthesizes OHLC from a close-price series (open = prev
+ * close, high/low = neighbour extremes) so it works without extra data.
+ */
+data class ChartOverlay(val sma: Boolean, val ema: Boolean, val bollinger: Boolean,
+                        val fibonacci: Boolean, val supportResistance: Boolean)
+
+@Composable
+fun AdvancedPriceChart(
+    values: List<Double>,
+    overlay: ChartOverlay,
+    modifier: Modifier = Modifier,
+) {
+    if (values.size < 3) {
+        Box(modifier = modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    // Synthesis of OHLC candles from close series.
+    val candles = (1 until values.size).map { i ->
+        val o = values[i - 1]; val c = values[i]
+        val hi = maxOf(o, c); val lo = minOf(o, c)
+        Quad(o, hi, lo, c)
+    }
+
+    val min = candles.minOf { it.low }
+    val max = candles.maxOf { it.high }
+    val span = (max - min).coerceAtLeast(1e-9)
+
+    // Precompute overlay series
+    val smaLine = if (overlay.sma) TechnicalIndicatorsSeries.sma(values, 20) else emptyList()
+    val emaLine = if (overlay.ema) TechnicalIndicatorsSeries.ema(values, 20) else emptyList()
+    val bb = if (overlay.bollinger) TechnicalIndicatorsSeries.bollinger(values) else null
+    val fib = if (overlay.fibonacci) TechnicalIndicatorsSeries.fibonacci(values) else null
+    val sr = if (overlay.supportResistance) TechnicalIndicatorsSeries.supportResistance(values) else null
+
+    Canvas(modifier = modifier.fillMaxWidth().height(220.dp).padding(horizontal = 6.dp)) {
+        val h = size.height
+        val w = size.width
+        val padTop = 12.dp.toPx()
+        val padBottom = 10.dp.toPx()
+        val usableH = h - padTop - padBottom
+        fun y(v: Double): Float = (padTop + usableH * (1 - ((v - min) / span))).toFloat()
+        fun x(i: Int): Float = if (candles.isEmpty()) 0f else w * i.toFloat() / candles.size
+
+        // grid
+        val grid = Color.Gray.copy(alpha = 0.12f)
+        for (g in 0..4) drawLine(grid, Offset(0f, padTop + usableH * g / 4f), Offset(w, padTop + usableH * g / 4f), 1f)
+
+        val candleW = (w / candles.size).coerceAtMost(10.dp.toPx()).coerceAtLeast(2.dp.toPx())
+        candles.forEachIndexed { i, c ->
+            val up = c.close >= c.open
+            val color = if (up) Green else Red
+            val cx = x(i)
+            drawLine(color, Offset(cx, y(c.high)), Offset(cx, y(c.low)), 1.5f)
+            val bodyTop = y(maxOf(c.open, c.close))
+            val bodyH = (y(minOf(c.open, c.close)) - bodyTop).coerceAtLeast(1.dp.toPx())
+            drawRect(color, topLeft = Offset(cx - candleW / 2f, bodyTop), size = androidx.compose.ui.geometry.Size(candleW, bodyH))
+        }
+
+        // overlay lines
+        fun poly(points: List<Double>, color: Color, alpha: Float = 0.9f) {
+            if (points.size < 2) return
+            val path = Path().apply {
+                moveTo(x(0), y(points[0]))
+                for (i in 1 until points.size) lineTo(x(i), y(points[i]))
+            }
+            drawPath(path, color, alpha = alpha, style = Stroke(width = 1.5f, cap = StrokeCap.Round))
+        }
+        if (overlay.sma) poly(smaLine, Blue)
+        if (overlay.ema) poly(emaLine, Amber)
+        bb?.let { pair ->
+            if (pair.first.isNotEmpty() && pair.second.isNotEmpty()) {
+                poly(pair.first, Purple)
+                poly(pair.second, Purple)
+            }
+        }
+        // Fibonacci + support/resistance horizontal levels
+        fun hline(value: Double, color: Color, dash: Boolean = false) {
+            val yy = y(value)
+            if (dash) {
+                val step = 8.dp.toPx()
+                var xx = 0f
+                while (xx < w) { drawLine(color, Offset(xx, yy), Offset(xx + step/2, yy), 1f); xx += step }
+            } else drawLine(color, Offset(0f, yy), Offset(w, yy), 1f)
+        }
+        sr?.let { pair ->
+            hline(pair.first, Green, dash = true)
+            hline(pair.second, Red, dash = true)
+        }
+        fib?.forEach { hline(it, Blue, dash = true) }
+    }
+    // Legend
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        smallLegend(Green, if (overlay.supportResistance) "S/R" else "")
+        if (overlay.sma) smallLegend(Blue, "SMA20")
+        if (overlay.ema) smallLegend(Amber, "EMA20")
+        if (overlay.bollinger) smallLegend(Purple, "Boll.")
+        if (overlay.fibonacci) smallLegend(Blue, "Fib")
+    }
+}
+
+@Composable
+private fun smallLegend(color: Color, text: String) {
+    if (text.isEmpty()) return
+    Box(Modifier.padding(end = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(color))
+            Spacer(Modifier.width(3.dp))
+            Text(text, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Internal series helpers (wrap TechnicalIndicators but tolerating small data). */
+private object TechnicalIndicatorsSeries {
+    fun sma(v: List<Double>, p: Int): List<Double> =
+        (0 until v.size).map { i -> if (i + 1 >= p) v.subList(0, i + 1).takeLast(p).average() else Double.NaN }
+
+    fun ema(v: List<Double>, p: Int): List<Double> {
+        if (v.isEmpty()) return emptyList()
+        val k = 2.0 / (p + 1)
+        var prev = v[0]
+        return v.mapIndexed { i, x -> if (i == 0) x else { prev = x * k + prev * (1 - k); prev } }
+    }
+
+    fun bollinger(v: List<Double>): Pair<List<Double>, List<Double>>? {
+        val upper = mutableListOf<Double>(); val lower = mutableListOf<Double>()
+        for (i in 0 until v.size) {
+            if (i < 19) { upper.add(Double.NaN); lower.add(Double.NaN); continue }
+            val win = v.subList(0, i + 1).takeLast(20)
+            val m = win.average(); val sd = win.map { (it - m) * (it - m) }.average().let { kotlin.math.sqrt(it) }
+            upper.add(m + 2 * sd); lower.add(m - 2 * sd)
+        }
+        return Pair(upper, lower)
+    }
+
+    fun fibonacci(v: List<Double>): List<Double>? {
+        if (v.size < 20) return null
+        val hi = v.max(); val lo = v.min(); val r = (hi - lo).coerceAtLeast(1e-9)
+        return listOf(0.236, 0.382, 0.5, 0.618, 0.786).map { hi - r * it }
+    }
+
+    fun supportResistance(v: List<Double>): Pair<Double, Double>? {
+        if (v.size < 10) return null
+        val win = v.takeLast(20).sorted()
+        val res = win[(win.size * 0.85).toInt().coerceIn(0, win.size - 1)]
+        val sup = win[(win.size * 0.15).toInt().coerceIn(0, win.size - 1)]
+        return Pair(res, sup)
+    }
+}
+
+private data class Quad(val open: Double, val high: Double, val low: Double, val close: Double)
+
+// Extra material colors for the chart
+private val Blue = Color(0xFF3B82F6)
+private val Purple = Color(0xFF8B5CF6)

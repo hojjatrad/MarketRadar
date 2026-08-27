@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 
-/** Stores user price alerts and detects which have triggered. */
+/** Stores user price alerts and detects which have triggered (incl. crossings). */
 class AlertRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences("marketradar_alerts", Context.MODE_PRIVATE)
@@ -20,15 +20,8 @@ class AlertRepository(context: Context) {
     val alerts: StateFlow<List<AlertItem>> = _alerts
 
     fun add(symbol: String, nameFa: String, condition: AlertCondition, target: Double, unit: PriceUnit) {
-        val item = AlertItem(
-            id = UUID.randomUUID().toString(),
-            symbol = symbol,
-            nameFa = nameFa,
-            condition = condition,
-            targetPrice = target,
-            unit = unit,
-            enabled = true,
-        )
+        val item = AlertItem(id = UUID.randomUUID().toString(), symbol = symbol, nameFa = nameFa,
+            condition = condition, targetPrice = target, unit = unit, enabled = true)
         _alerts.value = (_alerts.value + item).distinctBy { it.id + it.symbol + it.condition + it.targetPrice }
         persist()
     }
@@ -43,31 +36,32 @@ class AlertRepository(context: Context) {
         persist()
     }
 
-    /** Returns alerts that have triggered against the latest live prices. */
+    /** Returns alerts that triggered against the latest live prices. */
     fun triggered(prices: List<MarketPrice>): List<AlertItem> {
         val out = mutableListOf<AlertItem>()
-        for (alert in _alerts.value) {
-            if (!alert.enabled) continue
-            val current = prices.firstOrNull { it.symbol == alert.symbol } ?: continue
+        var changed = false
+        val updated = _alerts.value.map { alert ->
+            if (!alert.enabled) return@map alert
+            val current = prices.firstOrNull { it.symbol == alert.symbol } ?: return@map alert
+            val prev = alert.lastPrice ?: current.price
             val hit = when (alert.condition) {
                 AlertCondition.ABOVE -> current.price >= alert.targetPrice
                 AlertCondition.BELOW -> current.price <= alert.targetPrice
+                AlertCondition.CROSS_ABOVE -> prev < alert.targetPrice && current.price >= alert.targetPrice
+                AlertCondition.CROSS_BELOW -> prev > alert.targetPrice && current.price <= alert.targetPrice
             }
-            if (hit) out.add(alert)
+            if (hit) { out.add(alert); changed = true }
+            alert.copy(lastPrice = current.price)
         }
+        if (changed) { _alerts.value = updated; persist() }
         return out
     }
 
     private fun load(): List<AlertItem> {
         val json = prefs.getString("alerts", null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<AlertItem>>() {}.type
-            val list: MutableList<AlertItem> = gson.fromJson(json, type) ?: mutableListOf()
-            list
-        } catch (e: Exception) { emptyList() }
+        return try { val t = object : TypeToken<List<AlertItem>>() {}.type; val l: MutableList<AlertItem> = gson.fromJson(json, t) ?: mutableListOf(); l }
+        catch (e: Exception) { emptyList() }
     }
 
-    private fun persist() {
-        prefs.edit().putString("alerts", gson.toJson(_alerts.value)).apply()
-    }
+    private fun persist() { prefs.edit().putString("alerts", gson.toJson(_alerts.value)).apply() }
 }

@@ -50,7 +50,35 @@ data class ForecastItem(
     val factors: List<String>,
     val dataPoints: Int,
     val sentiment: Double,
+    // ---- Extended (v1.2) ----
+    val prob24h: Int? = null,
+    val prob72h: Int? = null,
+    val prob1w: Int? = null,
+    val accuracy: Double? = null,          // backtested hit-rate (0..1)
+    val fearGreed: Int? = null,            // 0..100
+    val rsi: Double? = null,
+    val macdHist: Double? = null,
+    val resistance: Double? = null,
+    val support: Double? = null,
+    val evidence: List<Evidence> = emptyList(),
+    val correlations: List<Correlation> = emptyList(),
 )
+
+/** A single weighted piece of evidence behind a signal (for transparency). */
+data class Evidence(
+    val label: String,
+    val score: Double,     // -1..+1
+    val weight: Double,    // 0..1 (importance)
+    val positive: Boolean,
+)
+
+/** Correlation of this asset with another tracked asset. */
+data class Correlation(
+    val symbol: String,
+    val nameEn: String,
+    val value: Double,     // -1..+1
+)
+
 
 /** News article with on-device sentiment and detected language. */
 data class NewsItem(
@@ -64,7 +92,7 @@ data class NewsItem(
     val isPersian: Boolean = false,
 )
 
-enum class AlertCondition { ABOVE, BELOW }
+enum class AlertCondition { ABOVE, BELOW, CROSS_ABOVE, CROSS_BELOW }
 
 /** A user defined price alert. */
 data class AlertItem(
@@ -75,6 +103,8 @@ data class AlertItem(
     val targetPrice: Double,
     val unit: PriceUnit,
     val enabled: Boolean,
+    /** Previous observed price, used to detect a genuine cross. */
+    val lastPrice: Double? = null,
 )
 
 /** Description of a trackable instrument (used to build the home list). */
@@ -103,6 +133,8 @@ data class Holding(
     val quantity: Double,
     val buyPrice: Double,
     val addedAt: Long = System.currentTimeMillis(),
+    val category: String = "سایر",   // short / long / سایر
+    val fees: Double = 0.0,
 )
 
 /** A single row of computed portfolio results for a holding. */
@@ -123,4 +155,26 @@ data class EconEvent(
     val date: Long,
     val tagFa: String,
     val tagEn: String,
+)
+
+/** A virtual (paper) trade in the trading simulator. */
+data class PaperTrade(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val symbol: String,
+    val nameFa: String,
+    val unit: PriceUnit,
+    val side: TradeSide,
+    val qty: Double,
+    val entryPrice: Double,
+    val time: Long = System.currentTimeMillis(),
+)
+
+enum class TradeSide { BUY, SELL }
+
+/** Live result of a paper trade. */
+data class PaperTradeRow(
+    val trade: PaperTrade,
+    val currentPrice: Double,
+    val pnl: Double,
+    val pnlPercent: Double,
 )

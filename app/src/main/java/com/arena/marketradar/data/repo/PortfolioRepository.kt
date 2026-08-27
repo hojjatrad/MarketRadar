@@ -18,8 +18,8 @@ class PortfolioRepository(context: Context) {
     private val _holdings = MutableStateFlow(load())
     val holdings: StateFlow<List<Holding>> = _holdings
 
-    fun add(symbol: String, nameFa: String, unit: PriceUnit, quantity: Double, buyPrice: Double) {
-        _holdings.value = _holdings.value + Holding(symbol = symbol, nameFa = nameFa, unit = unit, quantity = quantity, buyPrice = buyPrice)
+    fun add(symbol: String, nameFa: String, unit: PriceUnit, quantity: Double, buyPrice: Double, category: String = "سایر", fees: Double = 0.0) {
+        _holdings.value = _holdings.value + Holding(symbol = symbol, nameFa = nameFa, unit = unit, quantity = quantity, buyPrice = buyPrice, category = category, fees = fees)
         persist()
     }
 

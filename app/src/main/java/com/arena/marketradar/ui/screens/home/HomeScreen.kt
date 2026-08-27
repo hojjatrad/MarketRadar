@@ -104,6 +104,8 @@ fun HomeScreen(
     onOpenPortfolio: () -> Unit = {},
     onOpenCalendar: () -> Unit = {},
     onOpenReport: () -> Unit = {},
+    onOpenScreener: () -> Unit = {},
+    onOpenPaper: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = VMFactory { HomeViewModel(localApp()) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -121,6 +123,12 @@ fun HomeScreen(
                 QuickAction(if (lang == "fa") "سرمایه‌گذاری" else "Portfolio", "💰", onOpenPortfolio, Modifier.weight(1f))
                 QuickAction(if (lang == "fa") "تقویم" else "Calendar", "📅", onOpenCalendar, Modifier.weight(1f))
                 QuickAction(if (lang == "fa") "گزارش" else "Report", "📄", onOpenReport, Modifier.weight(1f))
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuickAction(if (lang == "fa") "اسکرینر" else "Screener", "🔎", onOpenScreener, Modifier.weight(1f))
+                QuickAction(if (lang == "fa") "شبیه‌ساز" else "Paper", "🧪", onOpenPaper, Modifier.weight(1f))
             }
         }
 

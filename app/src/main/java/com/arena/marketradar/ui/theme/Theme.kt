@@ -1,12 +1,16 @@
 package com.arena.marketradar.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 val Green = Color(0xFF1E9E6A)
 val Red = Color(0xFFE1554D)
@@ -39,28 +43,30 @@ private val Light = lightColorScheme(
     secondary = Color(0xFFB77E12),
 )
 
+/**
+ * App theme. When the device is Android 12+ and dynamic colour is enabled,
+ * Material You palette from the wallpaper is used (the app "feels native").
+ * @param dynamicColor enables Material You (Android 12+, default true).
+ */
 @Composable
 fun MarketRadarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) Dark else Light,
-        typography = Typography(),
-        content = content
-    )
+    val context = LocalContext.current
+    val scheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        darkTheme -> Dark
+        else -> Light
+    }
+    MaterialTheme(colorScheme = scheme, typography = Typography(), content = content)
 }
 
 // Color helpers used across components
-fun signalColor(signal: String): Color = when (signal) {
-    "BULLISH" -> Green
-    "BEARISH" -> Red
-    else -> Neutral
-}
+fun signalColor(signal: String): Color = when (signal) { "BULLISH" -> Green; "BEARISH" -> Red; else -> Neutral }
 
 @Composable fun priceColor(change: Double?): Color = when {
-    change == null -> Neutral
-    change > 0 -> Green
-    change < 0 -> Red
-    else -> Neutral
+    change == null -> Neutral; change > 0 -> Green; change < 0 -> Red; else -> Neutral
 }
