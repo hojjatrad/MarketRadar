@@ -113,6 +113,7 @@ fun HomeScreen(
     onOpenScreener: () -> Unit = {},
     onOpenPaper: () -> Unit = {},
     onOpenPicker: () -> Unit = {},
+    onOpenUpdate: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = VMFactory { HomeViewModel(localApp()) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -137,6 +138,11 @@ fun HomeScreen(
                 QuickAction(if (lang == "fa") "اسکرینر" else "Screener", "🔎", onOpenScreener, Modifier.weight(1f))
                 QuickAction(if (lang == "fa") "شبیه‌ساز" else "Paper", "🧪", onOpenPaper, Modifier.weight(1f))
                 QuickAction(if (lang == "fa") "انتخاب بازار" else "Select", "📚", onOpenPicker, Modifier.weight(1f))
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuickAction(if (lang == "fa") "بروزرسانی" else "Update", "🔄", onOpenUpdate, Modifier.weight(1f))
             }
         }
 

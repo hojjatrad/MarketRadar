@@ -8,6 +8,7 @@ import com.arena.marketradar.data.repo.MarketRepository
 import com.arena.marketradar.data.repo.NewsRepository
 import com.arena.marketradar.data.repo.PaperTradingRepository
 import com.arena.marketradar.data.repo.PortfolioRepository
+import com.arena.marketradar.data.repo.UpdateRepository
 import com.arena.marketradar.domain.analysis.ForecastEngine
 import com.arena.marketradar.domain.analysis.SentimentAnalyzer
 import com.arena.marketradar.work.AlertScheduler
@@ -35,6 +36,8 @@ class MarketRadarApplication : Application() {
         private set
     lateinit var notifications: NotificationHelper
         private set
+    lateinit var updates: UpdateRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -50,6 +53,7 @@ class MarketRadarApplication : Application() {
         paper = PaperTradingRepository(this)
         engine = ForecastEngine()
         notifications = NotificationHelper(this)
+        updates = UpdateRepository(this)
         AlertScheduler.schedule(this)
     }
 
