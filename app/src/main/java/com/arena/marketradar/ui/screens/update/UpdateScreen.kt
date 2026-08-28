@@ -72,7 +72,7 @@ class UpdateViewModel(private val app: MarketRadarApplication) : ViewModel() {
                     it.copy(checking = false, available = rel, message = "نسخهٔ جدید ${rel.tagName} موجود است.")
                 }
             } else {
-                _state.update { it.copy(checking = false, message = "برنامهٔ شما به‌روز است (${repo.installedVersionName()}).") }
+                _state.update { it.copy(checking = false, available = null, message = "برنامهٔ شما به‌روز است (${repo.installedVersionName()}).") }
             }
         }
     }

@@ -8,7 +8,10 @@ data class GitHubRelease(
     val body: String?,
     val assets: List<GitHubAsset>,
     val versionCode: Int,
-)
+) {
+    /** Clean semantic version string (e.g. "1.4") derived from the tag. */
+    fun versionName(): String = tagName.trimStart('v').trim()
+}
 
 data class GitHubAsset(
     val name: String,

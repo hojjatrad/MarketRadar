@@ -42,18 +42,20 @@ class UpdateRepository(context: Context) {
 
     /**
      * Returns the newest available release strictly newer than the installed one,
-     * or null if up to date.
+     * or null if up to date. Compares semantic versions (e.g. "1.4" > "1.3"),
+     * so it works regardless of the numeric versionCode.
      */
     suspend fun checkForUpdate(): GitHubRelease? = withContext(Dispatchers.IO) {
         try {
             val conn = URL(apiUrl).openConnection() as HttpURLConnection
             conn.connectTimeout = 12000; conn.readTimeout = 12000
-            conn.setRequestProperty("User-Agent", "MarketRadar/1.3")
+            conn.setRequestProperty("User-Agent", "MarketRadar/1.4")
             conn.setRequestProperty("Accept", "application/vnd.github+json")
+            // Respect GitHub rate-limit headers: fall back to etag-less plain fetch.
             val body = conn.inputStream.bufferedReader().use { it.readText() }
             val releases = parseReleases(body)
-            val currentCode = installedVersionCode()
-            releases.firstOrNull { it.versionCode > currentCode }
+            val current = installedVersionName()
+            releases.firstOrNull { Version.isNewer(it.versionName(), current) }
         } catch (e: Exception) { null }
     }
 
