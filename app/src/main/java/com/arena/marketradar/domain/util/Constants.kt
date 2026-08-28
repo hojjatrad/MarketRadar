@@ -16,8 +16,11 @@ object Constants {
     /** Coingecko ids that always have deep history for technical analysis. */
     val DEEP_HISTORY_COINS = listOf("bitcoin", "ethereum", "tether", "binancecoin", "solana")
 
-    /** Fiat symbols (Iran, Toman) fetched from baha24. */
-    val IRAN_FIAT = listOf("USD", "EUR", "GBP", "AED", "TRY", "CAD", "AUD", "CHF", "CNY", "JPY")
+    /** All fiat symbols (Iran, Toman) fetched from baha24. */
+    val IRAN_FIAT = listOf(
+        "USD", "EUR", "GBP", "AED", "TRY", "CAD", "AUD", "CHF", "CNY", "JPY", "RUB",
+        "MYR", "AFN", "SEK", "NOK", "OMR", "KWD", "DKK", "AZN", "SGD", "THB", "INR"
+    )
 
     /** Global fiat cross rates (USD base) via Frankfurter. */
     val GLOBAL_FIAT = listOf("EUR", "GBP", "AED", "TRY", "CAD", "AUD", "CHF")
@@ -48,6 +51,7 @@ object Constants {
         AssetDefinition("AZADI1", "تمام سکه", "Full Azadi Coin", AssetType.METAL, MarketScope.IRAN, PriceUnit.COIN, "metal", emoji = "🟡"),
         AssetDefinition("AZADI1_2", "نیم سکه", "Half Azadi Coin", AssetType.METAL, MarketScope.IRAN, PriceUnit.COIN, "metal", emoji = "🟡"),
         AssetDefinition("AZADI1_4", "ربع سکه", "Quarter Azadi Coin", AssetType.METAL, MarketScope.IRAN, PriceUnit.COIN, "metal", emoji = "🟡"),
+        AssetDefinition("AZADI1G", "سکه ۱ گرمی", "1 Gram Coin", AssetType.METAL, MarketScope.IRAN, PriceUnit.COIN, "metal", emoji = "🟡"),
         AssetDefinition("MITHQAL", "مثقال طلا", "Gold Mithqal", AssetType.METAL, MarketScope.IRAN, PriceUnit.COIN, "metal", emoji = "🪙"),
 
         // ---- Fiat (Iran, Toman) ----
@@ -62,7 +66,22 @@ object Constants {
         AssetDefinition("CNY", "یوان چین", "Chinese Yuan", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🀄"),
         AssetDefinition("JPY", "ین ژاپن", "Japanese Yen", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🇯🇵"),
         AssetDefinition("RUB", "روبل روسیه", "Russian Ruble", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪆"),
+        AssetDefinition("MYR", "رینگیت مالزی", "Malaysian Ringgit", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("AFN", "افغانی", "Afghani", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("SEK", "کرون سوئد", "Swedish Krona", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("NOK", "کرون نروژ", "Norwegian Krone", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("OMR", "ریال عمان", "Omani Rial", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("KWD", "دینار کویت", "Kuwaiti Dinar", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("DKK", "کرون دانمارک", "Danish Krone", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("AZN", "منات آذربایجان", "Azerbaijani Manat", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("SGD", "دلار سنگاپور", "Singapore Dollar", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("THB", "بات تایلند", "Thai Baht", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("INR", "روپیه هند", "Indian Rupee", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "🪙"),
+        AssetDefinition("MEXUSD", "دلار صرافی ملی", "National Exchange Dollar", AssetType.FIAT, MarketScope.IRAN, PriceUnit.TOMAN, "fiat_iran", emoji = "💵"),
     )
+
+    /** A large, searchable list of all selectable assets grouped by market. */
+    val ALL_SELECTABLE: List<AssetDefinition> = ASSETS
 
     /** Default watchlist symbols shown first on the home screen. */
     val DEFAULT_WATCHLIST = listOf("USD", "USDT", "BTC", "XAU", "GOL18", "EMAMI1", "EUR", "ETH")
@@ -70,8 +89,25 @@ object Constants {
     /** Maps a tracked symbol to its news keyword key used by the sentiment analyzer. */
     fun newsKey(symbol: String): String = when (symbol) {
         "BTC" -> "BTC"; "ETH" -> "ETH"
-        "XAU", "GOL18", "EMAMI1", "AZADI1", "AZADI1_2", "AZADI1_4", "MITHQAL" -> "XAU"
+        "XAU", "GOL18", "EMAMI1", "AZADI1", "AZADI1_2", "AZADI1_4", "AZADI1G", "MITHQAL" -> "XAU"
         "USD" -> "USD"; "EUR" -> "EUR"; "USDT" -> "USDT"; "SOL" -> "SOL"; "XRP" -> "XRP"
         else -> symbol
+    }
+
+    /** Persian display name for any tracked symbol (used when language is Persian). */
+    fun nameFa(symbol: String): String = ASSETS.firstOrNull { it.symbol == symbol }?.nameFa ?: symbol
+
+    /** Human-friendly Persian section title for an asset. */
+    fun sectionTitle(type: AssetType, scope: MarketScope, lang: String): String = when (type) {
+        AssetType.CRYPTO -> if (lang == "fa") "ارز دیجیتال" else "Cryptocurrency"
+        AssetType.METAL -> if (lang == "fa") "طلا و فلزات" else "Gold & Metals"
+        AssetType.FIAT -> if (lang == "fa") "ارز (بازار ایران)" else "Fiat (Iran Market)"
+    }
+
+    /** Group key for the picker: fiat/metal/crypto, sub-grouped by scope. */
+    fun groupKey(type: AssetType, scope: MarketScope): String = when (type) {
+        AssetType.CRYPTO -> "crypto"
+        AssetType.METAL -> if (scope == MarketScope.IRAN) "metal_iran" else "metal_global"
+        AssetType.FIAT -> "fiat_iran"
     }
 }

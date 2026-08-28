@@ -125,7 +125,7 @@ private fun NewsRow(n: NewsItem, lang: String, onOpen: (String) -> Unit) {
                 Text(n.sentimentLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = sentimentColor)
             }
             Spacer(Modifier.height(4.dp))
-            Text(n.title, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 4)
+            Text(if (lang == "fa" && !n.titleFa.isNullOrBlank()) n.titleFa else n.title, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 4)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(n.source, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))

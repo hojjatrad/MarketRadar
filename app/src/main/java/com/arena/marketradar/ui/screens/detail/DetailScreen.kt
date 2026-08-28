@@ -250,7 +250,8 @@ fun DetailScreen(symbol: String, onBack: () -> Unit, viewModel: DetailViewModel 
                                 Spacer(Modifier.height(6.dp))
                                 Text(if (lang == "fa") "همبستگی" else "Correlations", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 f.correlations.forEach { c ->
-                                    Text("${c.nameEn}: ${Formatters.plain(c.value, 2)}", fontSize = 11.sp, color = if (c.value > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                    val cname = if (lang == "fa") com.arena.marketradar.domain.util.Constants.nameFa(c.symbol) else c.nameEn
+                                    Text("${cname}: ${Formatters.plain(c.value, 2)}", fontSize = 11.sp, color = if (c.value > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                                 }
                             }
                         }

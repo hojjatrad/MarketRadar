@@ -69,7 +69,13 @@ class HomeViewModel(private val app: MarketRadarApplication) : ViewModel() {
     val state: StateFlow<HomeUiState> = _state
 
     init {
-        _state.update { it.copy(watchlist = app.settings.watchlist().ifEmpty { Constants.DEFAULT_WATCHLIST }.toSet()) }
+        // Live-update the watchlist whenever the user changes the selection.
+        viewModelScope.launch {
+            app.settings.watchlistState.collect { list ->
+                val set = list.ifEmpty { Constants.DEFAULT_WATCHLIST }.toSet()
+                _state.update { it.copy(watchlist = set) }
+            }
+        }
         refresh()
     }
 
@@ -106,6 +112,7 @@ fun HomeScreen(
     onOpenReport: () -> Unit = {},
     onOpenScreener: () -> Unit = {},
     onOpenPaper: () -> Unit = {},
+    onOpenPicker: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = VMFactory { HomeViewModel(localApp()) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -129,6 +136,7 @@ fun HomeScreen(
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 QuickAction(if (lang == "fa") "اسکرینر" else "Screener", "🔎", onOpenScreener, Modifier.weight(1f))
                 QuickAction(if (lang == "fa") "شبیه‌ساز" else "Paper", "🧪", onOpenPaper, Modifier.weight(1f))
+                QuickAction(if (lang == "fa") "انتخاب بازار" else "Select", "📚", onOpenPicker, Modifier.weight(1f))
             }
         }
 
@@ -145,21 +153,17 @@ fun HomeScreen(
             }
         }
 
-        val current = state.prices
-        val watch = state.watchlist
-        if (watch.isNotEmpty()) {
-            item { SectionHeader(L.watchlist.l(lang)) }
-            items(current.filter { it.symbol in watch }, key = { "w_" + it.symbol }) { p ->
-                MarketRow(p, state.signals[p.symbol], lang, star = true, onOpen = onOpen, onToggleStar = { viewModel.toggleWatch(p.symbol) })
-            }
+        // Show only the assets the user selected (the "universe") grouped by market.
+        val selected = state.prices.filter { it.symbol in state.watchlist }
+        if (selected.isEmpty()) {
+            item { Text(L.watchlistEmpty.l(lang), modifier = Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-
         val groups = linkedMapOf<String, List<MarketPrice>>()
-        current.forEach { p -> groups.getOrPut(groupTitle(p.type, p.scope, lang)) { mutableListOf() }.let { (it as MutableList).add(p) } }
+        selected.forEach { p -> groups.getOrPut(groupTitle(p.type, p.scope, lang)) { mutableListOf() }.let { (it as MutableList).add(p) } }
         groups.forEach { (title, items) ->
             item { SectionHeader(title) }
             items(items, key = { "g_" + it.symbol }) { p ->
-                MarketRow(p, state.signals[p.symbol], lang, star = p.symbol in watch, onOpen = onOpen, onToggleStar = { viewModel.toggleWatch(p.symbol) })
+                MarketRow(p, state.signals[p.symbol], lang, star = p.symbol in state.watchlist, onOpen = onOpen, onToggleStar = { viewModel.toggleWatch(p.symbol) })
             }
         }
         item { Spacer(Modifier.height(24.dp)) }

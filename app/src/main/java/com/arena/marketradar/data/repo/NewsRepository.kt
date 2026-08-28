@@ -2,9 +2,11 @@ package com.arena.marketradar.data.repo
 
 import com.arena.marketradar.data.model.NewsItem
 import com.arena.marketradar.domain.analysis.SentimentAnalyzer
+import com.arena.marketradar.domain.util.TranslationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.net.URLEncoder
@@ -42,7 +44,31 @@ class NewsRepository(private val analyzer: SentimentAnalyzer) {
             .distinctBy { it.title }
             .sortedByDescending { it.published }
             .take(160)
+            .let { list ->
+                // Translate English headlines to Persian so the whole news view is Persian.
+                if (appLang() == "fa") translateFa(list) else list
+            }
     }
+
+    /** Cached, concurrency-limited translation of English items; Persian items unchanged. */
+    private suspend fun translateFa(items: List<NewsItem>): List<NewsItem> =
+        withContext(Dispatchers.IO) {
+            val semaphore = java.util.concurrent.Semaphore(3)
+            val result = items.mapNotNull { item ->
+                if (item.isPersian) return@mapNotNull item
+                semaphore.acquire()
+                try {
+                    val t = TranslationHelper.translateToFa(item.title)
+                    if (t.isNullOrBlank()) item else item.copy(titleFa = t)
+                } finally { semaphore.release() }
+            }
+            result
+        }
+
+    private fun appLang(): String =
+        try {
+            com.arena.marketradar.MarketRadarApplication.instance.settings.language.value
+        } catch (e: Exception) { "fa" }
 
     private fun safeParse(url: String): List<NewsItem> = try { parse(url) } catch (e: Exception) { emptyList() }
 

@@ -93,7 +93,7 @@ private fun EventRow(e: EconEvent, lang: String) {
                     Text(if (lang == "fa") e.tagFa else e.tagEn, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(4.dp))
-                Text(if (lang == "fa") e.title else e.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (lang == "fa") e.tagFa else e.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(formatDate(e.date), fontSize = 13.sp, fontWeight = FontWeight.Bold)

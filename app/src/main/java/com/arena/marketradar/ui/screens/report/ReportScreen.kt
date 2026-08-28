@@ -66,7 +66,8 @@ class ReportViewModel(private val app: MarketRadarApplication) : ViewModel() {
     init {
         viewModelScope.launch {
             try {
-                val prices = app.market.getMarkets()
+                val watch = app.settings.watchlist().ifEmpty { com.arena.marketradar.domain.util.Constants.DEFAULT_WATCHLIST }.toSet()
+                val prices = app.market.getMarkets().filter { it.symbol in watch }
                 val news = app.news.fetch()
                 val forecasts = prices.mapNotNull { p ->
                     val hist = app.market.getHistory(p.symbol).map { it.value }

@@ -90,6 +90,8 @@ data class NewsItem(
     val sentimentLabel: String,
     val assets: List<String>,
     val isPersian: Boolean = false,
+    /** Persian translation of an English headline (added when language is fa). */
+    val titleFa: String? = null,
 )
 
 enum class AlertCondition { ABOVE, BELOW, CROSS_ABOVE, CROSS_BELOW }

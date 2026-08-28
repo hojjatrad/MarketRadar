@@ -58,11 +58,19 @@ class SettingsRepository(context: Context) {
     fun setOffline(v: Boolean) { prefs.edit().putBoolean(KEY_OFFLINE, v).apply(); _offline.value = v }
     fun setDailyReport(v: Boolean) { prefs.edit().putBoolean(KEY_DAILY_REPORT, v).apply(); _dailyReport.value = v }
 
-    fun watchlist(): List<String> =
-        prefs.getString(KEY_WATCH, "")!!.split(",").filter { it.isNotBlank() }
+    /** Live watchlist (the selected "universe") so the UI updates instantly. */
+    private val _watchlist = MutableStateFlow(readWatchlist())
+    val watchlistState: StateFlow<List<String>> = _watchlist
+
+    fun watchlist(): List<String> = readWatchlist()
+
     fun saveWatchlist(list: List<String>) {
         prefs.edit().putString(KEY_WATCH, list.joinToString(",")).apply()
+        _watchlist.value = list.distinct()
     }
+
+    private fun readWatchlist(): List<String> =
+        prefs.getString(KEY_WATCH, "")!!.split(",").filter { it.isNotBlank() }.distinct()
 
     private companion object {
         const val KEY_LANG = "lang"

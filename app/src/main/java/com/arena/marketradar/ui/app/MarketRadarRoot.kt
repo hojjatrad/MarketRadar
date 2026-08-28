@@ -44,6 +44,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.arena.marketradar.ui.screens.assets.AssetPickerScreen
 import com.arena.marketradar.ui.screens.calendar.CalendarScreen
 import com.arena.marketradar.ui.screens.converter.ConverterScreen
 import com.arena.marketradar.ui.screens.detail.DetailScreen
@@ -115,7 +116,7 @@ private fun MainContent() {
         val currentRoute = backStack?.destination?.route
         val showBottomBar = currentRoute?.startsWith("detail") != true &&
             currentRoute != "portfolio" && currentRoute != "calendar" && currentRoute != "report" &&
-            currentRoute != "paper" && currentRoute != "screener"
+            currentRoute != "paper" && currentRoute != "screener" && currentRoute != "picker"
 
         Scaffold(bottomBar = {
             if (showBottomBar) {
@@ -144,7 +145,8 @@ private fun MainContent() {
                         onOpenCalendar = { navController.navigate("calendar") },
                         onOpenReport = { navController.navigate("report") },
                         onOpenScreener = { navController.navigate("screener") },
-                        onOpenPaper = { navController.navigate("paper") }
+                        onOpenPaper = { navController.navigate("paper") },
+                        onOpenPicker = { navController.navigate("picker") }
                     )
                 }
                 composable("forecast") { ForecastScreen(onOpen = { sym -> navController.navigate("detail/$sym") }) }
@@ -156,6 +158,7 @@ private fun MainContent() {
                 composable("report") { ReportScreen(onBack = { navController.popBackStack() }) }
                 composable("paper") { PaperTradingScreen(onBack = { navController.popBackStack() }, onOpen = { sym -> navController.navigate("detail/$sym") }) }
                 composable("screener") { ScreenerScreen(onOpen = { sym -> navController.navigate("detail/$sym") }, onBack = { navController.popBackStack() }) }
+                composable("picker") { AssetPickerScreen(onSave = { navController.previousBackStackEntry?.savedStateHandle?.set("sel", it); navController.popBackStack() }, onBack = { navController.popBackStack() }) }
                 composable(
                     route = "detail/{symbol}",
                     arguments = listOf(navArgument("symbol") { type = NavType.StringType })

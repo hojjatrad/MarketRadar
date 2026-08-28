@@ -49,16 +49,16 @@ class ForecastEngine {
 
         if (sma20 != null && price > 0) {
             val t = ((price - sma20) / sma20).coerceIn(-0.1, 0.1) / 0.1
-            add(t, 1.0, "price_vs_sma20", "قیمت نسبت به میانگین ۲۰")
+            add(t, 1.0, "قیمت نسبت به میانگین ۲۰", "قیمت نسبت به میانگین ۲۰")
         }
         if (sma5 != null && sma20 != null) {
             val cross = (sma5 - sma20) / sma20.coerceAtLeast(1e-9) * 100.0
             val s = cross.coerceIn(-3.0, 3.0) / 3.0
-            add(s, 0.8, "sma5_vs_sma20", "میانگین کوتاه‌مدت نسبت به بلندمدت")
+            add(s, 0.8, "میانگین کوتاه‌مدت", "میانگین کوتاه‌مدت نسبت به بلندمدت")
         }
         if (sma50 != null && sma20 != null) {
             val s = if (sma20 > sma50) 0.4 else -0.4
-            add(s, 0.4, "sma20_vs_sma50", "میانگین ۲۰ نسبت به ۵۰")
+            add(s, 0.4, "میانگین ۲۰ نسبت به ۵۰", "میانگین ۲۰ نسبت به ۵۰")
         }
 
         // RSI
@@ -68,48 +68,48 @@ class ForecastEngine {
                 rsi <= 30 -> (30 - rsi) / 30
                 else -> (rsi - 50) / 50.0
             }
-            add(s.coerceIn(-1.0, 1.0), 0.7, "rsi", "RSI=${rsi.toInt()}")
+            add(s.coerceIn(-1.0, 1.0), 0.7, "شاخص RSI", "RSI=${rsi.toInt()}")
         }
 
         // MACD histogram
         val hist = macd.third
         if (hist != null) {
             val h = hist / price.coerceAtLeast(1e-9) * 100.0
-            add((h.coerceIn(-2.0, 2.0) / 2.0), 0.7, "macd", "هیستوگرام MACD")
+            add((h.coerceIn(-2.0, 2.0) / 2.0), 0.7, "هیستوگرام MACD", "هیستوگرام MACD")
         }
 
         // Momentum
         if (momentum != null && price > 0) {
             val s = (momentum / price).coerceIn(-0.06, 0.06) / 0.06
-            add(s, 0.6, "momentum", "تکانه")
+            add(s, 0.6, "تکانه", "تکانه")
         }
 
         // Bollinger position
         val (upper, mid, lower) = boll
         if (upper != null && mid != null && price > 0) {
             val denom = (upper - mid).coerceAtLeast(1e-9)
-            add(((price - mid) / denom).coerceIn(-1.0, 1.0), 0.3, "bollinger", "موقعیت باند بولینگر")
+            add(((price - mid) / denom).coerceIn(-1.0, 1.0), 0.3, "باند بولینگر", "موقعیت باند بولینگر")
         }
 
         // VWAP
         val vwap = TechnicalIndicators.vwap(values)
         if (vwap != null && vwap > 0 && price > 0) {
             val s = ((price - vwap) / vwap).coerceIn(-0.05, 0.05) / 0.05
-            add(s, 0.5, "vwap", "قیمت نسبت به VWAP")
+            add(s, 0.5, "VWAP (میانگین حجمی)", "قیمت نسبت به VWAP")
         }
 
         // Trend structure (higher high/lows)
         val structure = TechnicalIndicators.trendStructure(values)
-        if (structure != 0) add(structure.toDouble() * 0.6, 0.5, "structure", "ساختار روند")
+        if (structure != 0) add(structure.toDouble() * 0.6, 0.5, "ساختار روند", "ساختار روند")
 
         // Divergences
         val rsiDiv = TechnicalIndicators.rsiDivergence(values)
-        if (rsiDiv != 0) add(rsiDiv.toDouble() * 0.7, 0.6, "rsi_divergence", "واگرایی RSI")
+        if (rsiDiv != 0) add(rsiDiv.toDouble() * 0.7, 0.6, "واگرایی RSI", "واگرایی RSI")
         val macdDiv = TechnicalIndicators.macdDivergence(values)
-        if (macdDiv != 0) add(macdDiv.toDouble() * 0.7, 0.5, "macd_divergence", "واگرایی MACD")
+        if (macdDiv != 0) add(macdDiv.toDouble() * 0.7, 0.5, "واگرایی MACD", "واگرایی MACD")
 
         // Sentiment
-        add(sentiment, 0.9, "sentiment", "احساسات خبری")
+        add(sentiment, 0.9, "احساسات خبری", "احساسات خبری")
 
         val normalised = if (weightSum > 0) score / weightSum else 0.0
 
