@@ -114,6 +114,7 @@ fun HomeScreen(
     onOpenPaper: () -> Unit = {},
     onOpenPicker: () -> Unit = {},
     onOpenUpdate: () -> Unit = {},
+    onOpenCopyTrade: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(factory = VMFactory { HomeViewModel(localApp()) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -143,6 +144,7 @@ fun HomeScreen(
         item {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 QuickAction(if (lang == "fa") "بروزرسانی" else "Update", "🔄", onOpenUpdate, Modifier.weight(1f))
+                QuickAction(if (lang == "fa") "کپی‌ترید" else "Copy", "📊", onOpenCopyTrade, Modifier.weight(1f))
             }
         }
 

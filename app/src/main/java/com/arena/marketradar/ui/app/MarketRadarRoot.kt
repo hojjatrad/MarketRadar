@@ -47,6 +47,7 @@ import androidx.navigation.navArgument
 import com.arena.marketradar.ui.screens.assets.AssetPickerScreen
 import com.arena.marketradar.ui.screens.calendar.CalendarScreen
 import com.arena.marketradar.ui.screens.converter.ConverterScreen
+import com.arena.marketradar.ui.screens.copytrading.CopyTradingScreen
 import com.arena.marketradar.ui.screens.detail.DetailScreen
 import com.arena.marketradar.ui.screens.forecast.ForecastScreen
 import com.arena.marketradar.ui.screens.home.HomeScreen
@@ -117,7 +118,7 @@ private fun MainContent() {
         val currentRoute = backStack?.destination?.route
         val showBottomBar = currentRoute?.startsWith("detail") != true &&
             currentRoute != "portfolio" && currentRoute != "calendar" && currentRoute != "report" &&
-            currentRoute != "paper" && currentRoute != "screener" && currentRoute != "picker" && currentRoute != "update"
+            currentRoute != "paper" && currentRoute != "screener" && currentRoute != "picker" && currentRoute != "update" && currentRoute != "copytrade"
 
         Scaffold(bottomBar = {
             if (showBottomBar) {
@@ -148,7 +149,8 @@ private fun MainContent() {
                         onOpenScreener = { navController.navigate("screener") },
                         onOpenPaper = { navController.navigate("paper") },
                         onOpenPicker = { navController.navigate("picker") },
-                        onOpenUpdate = { navController.navigate("update") }
+                        onOpenUpdate = { navController.navigate("update") },
+                        onOpenCopyTrade = { navController.navigate("copytrade") }
                     )
                 }
                 composable("forecast") { ForecastScreen(onOpen = { sym -> navController.navigate("detail/$sym") }) }
@@ -162,6 +164,7 @@ private fun MainContent() {
                 composable("screener") { ScreenerScreen(onOpen = { sym -> navController.navigate("detail/$sym") }, onBack = { navController.popBackStack() }) }
                 composable("picker") { AssetPickerScreen(onSave = { navController.previousBackStackEntry?.savedStateHandle?.set("sel", it); navController.popBackStack() }, onBack = { navController.popBackStack() }) }
                 composable("update") { UpdateScreen(onBack = { navController.popBackStack() }) }
+                composable("copytrade") { CopyTradingScreen(onBack = { navController.popBackStack() }) }
                 composable(
                     route = "detail/{symbol}",
                     arguments = listOf(navArgument("symbol") { type = NavType.StringType })

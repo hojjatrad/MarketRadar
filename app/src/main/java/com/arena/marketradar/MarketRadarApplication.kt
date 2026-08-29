@@ -38,6 +38,8 @@ class MarketRadarApplication : Application() {
         private set
     lateinit var updates: UpdateRepository
         private set
+    lateinit var copytrade: com.arena.marketradar.data.repo.CopyTradingRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -54,6 +56,7 @@ class MarketRadarApplication : Application() {
         engine = ForecastEngine()
         notifications = NotificationHelper(this)
         updates = UpdateRepository(this)
+        copytrade = com.arena.marketradar.data.repo.CopyTradingRepository(this)
         AlertScheduler.schedule(this)
     }
 
